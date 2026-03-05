@@ -454,10 +454,51 @@ function ProductCard({ product }) {
 
 // ─── PRE-ORDER MODAL ──────────────────────────────────────────────────────────
 function PreOrderModal({ product, onClose, onAdd }) {
+  const { user } = useAuth(); 
   const [qty, setQty] = useState(1);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [added, setAdded] = useState(false);
+
+  if (!user) {
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={onClose}>
+        <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 16, padding: 40, maxWidth: 400, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>🌶️</div>
+          <h2 style={{ fontFamily: "Georgia,serif", color: T.charcoal, fontSize: 24, margin: "0 0 12px" }}>Sign In to Order</h2>
+          <p style={{ color: T.warmGray, fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
+            You need an account to pre-order from Spice & Maple. It's free and takes 30 seconds!
+          </p>
+          <div style={{ background: T.lightGray, borderRadius: 10, padding: 16, marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <span style={{ fontSize: 20 }}>📅</span>
+              <span style={{ color: T.charcoal, fontSize: 14, fontWeight: 600 }}>Pick your date & time</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <span style={{ fontSize: 20 }}>🛒</span>
+              <span style={{ color: T.charcoal, fontSize: 14, fontWeight: 600 }}>Add items to your cart</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 20 }}>🍁</span>
+              <span style={{ color: T.charcoal, fontSize: 14, fontWeight: 600 }}>Track your order status</span>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 12 }}>
+            <button
+              onClick={() => { onClose(); setTimeout(() => document.dispatchEvent(new CustomEvent("goToAuth")), 100); }}
+              style={{ flex: 1, padding: "13px", background: `linear-gradient(135deg,${T.red},${T.maple})`, border: "none", borderRadius: 10, color: "white", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+              Sign In / Sign Up
+            </button>
+            <button onClick={onClose} style={{ padding: "13px 18px", background: "none", border: `1px solid ${T.border}`, borderRadius: 10, color: T.warmGray, fontSize: 14, cursor: "pointer" }}>
+              Cancel
+            </button>
+          </div>
+          <p style={{ color: "#CCC", fontSize: 12, marginTop: 16 }}>Free to join · Canadian data privacy protected</p>
+        </div>
+      </div>
+    );
+  }
+
   const handle = () => {
     if (!date || !time) return;
     onAdd(product, qty, date, time);
@@ -1315,6 +1356,14 @@ function Footer({ setPage }) {
 // ─── APP ROOT ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [page, setPage] = useState("home");
+
+
+
+   useEffect(() => {
+    const handler = () => setPage("auth");
+    document.addEventListener("goToAuth", handler);
+    return () => document.removeEventListener("goToAuth", handler);
+  }, []);
 
   const renderPage = () => {
     switch (page) {
