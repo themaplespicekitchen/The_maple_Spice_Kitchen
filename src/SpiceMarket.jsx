@@ -1,4 +1,4 @@
-import { useState, useContext, createContext } from "react";
+import { useState, useEffect, useContext, createContext } from "react";
 import {
   ShoppingCart, X, Star, ChevronDown, Flame, Leaf, MapPin, Shield,
   LogOut, Package, Plus, Minus, CheckCircle, Calendar, ArrowLeft,
