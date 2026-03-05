@@ -54,7 +54,7 @@ const CartCtx = createContext(null);
 const AuthCtx = createContext(null);
 const DataCtx = createContext(null);
 
-import { supabase } from './supabaseClient'
+
 
 function DataProvider({ children }) {
   const [products, setProducts] = useState([]);
