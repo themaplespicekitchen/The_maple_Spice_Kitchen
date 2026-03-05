@@ -6,7 +6,7 @@ import {
   TrendingUp, Eye, EyeOff, Save, Search,
   ToggleLeft, ToggleRight, Lock
 } from "lucide-react";
-import { supabase } from './supabaseClient'
+import { supabase } from './supabaseClient' //comment
 // ─── THEME ────────────────────────────────────────────────────────────────────
 const T = {
   red: "#C0392B", redDark: "#922B21", redLight: "#E74C3C",
