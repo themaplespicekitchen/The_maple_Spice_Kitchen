@@ -62,59 +62,64 @@ function DataProvider({ children }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ── Initial load ──────────────────────────────────────────
+  const fetchProducts = async () => {
+    const { data } = await supabase.from("products").select("*").order("created_at");
+    if (data) setProducts(data.map(p => ({
+      ...p, heat: p.heat_level, image: p.image_emoji, badges: p.badges || []
+    })));
+  };
+
+  const fetchOrders = async () => {
+    const { data } = await supabase
+      .from("orders")
+      .select("*, order_items(*)")
+      .order("created_at", { ascending: false });
+    if (data) setOrders(data.map(o => ({
+      ...o,
+      customer: o.customer_email,
+      items: (o.order_items || []).map(i => ({
+        name: i.product_name,
+        qty: i.quantity,
+        price: i.unit_price,
+      })),
+      hst: o.hst_amount,
+      total: o.total_price,
+      pickup: o.pickup_date,
+      pickupTime: o.pickup_time_range,
+    })));
+  };
+
+  const fetchUsers = async () => {
+    const { data } = await supabase.from("profiles").select("*").order("created_at");
+    if (data) setUsers(data.map(u => ({
+      ...u,
+      name: u.full_name || u.email?.split("@")[0] || "User",
+      joined: u.created_at?.split("T")[0],
+      orders: 0,
+      spent: 0,
+    })));
+  };
+
   useEffect(() => {
     const loadAll = async () => {
-      const [{ data: prods }, { data: ords }, { data: usrs }] = await Promise.all([
-        supabase.from('products').select('*').order('created_at'),
-        supabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: false }),
-        supabase.from('profiles').select('*').order('created_at'),
-      ]);
-      if (prods) setProducts(prods.map(p => ({
-        ...p, heat: p.heat_level, image: p.image_emoji, badges: p.badges || []
-      })));
-      if (ords) setOrders(ords.map(o => ({
-        ...o, customer: o.customer_email,
-        items: o.order_items || [],
-        hst: o.hst_amount, total: o.total_price,
-        pickup: o.pickup_date, pickupTime: o.pickup_time_range,
-      })));
-      if (usrs) setUsers(usrs.map(u => ({
-        ...u, name: u.full_name || u.email?.split('@')[0] || 'User',
-        joined: u.created_at?.split('T')[0],
-      })));
+      setLoading(true);
+      await Promise.all([fetchProducts(), fetchOrders(), fetchUsers()]);
       setLoading(false);
     };
     loadAll();
 
-    // ── Real-time subscriptions ───────────────────────────────
-    const productSub = supabase.channel('products-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
-        supabase.from('products').select('*').order('created_at')
-          .then(({ data }) => data && setProducts(data.map(p => ({
-            ...p, heat: p.heat_level, image: p.image_emoji, badges: p.badges || []
-          }))));
-      }).subscribe();
+    // Real-time subscriptions
+    const productSub = supabase.channel("products-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "products" }, fetchProducts)
+      .subscribe();
 
-    const orderSub = supabase.channel('orders-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        supabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: false })
-          .then(({ data }) => data && setOrders(data.map(o => ({
-            ...o, customer: o.customer_email,
-            items: o.order_items || [],
-            hst: o.hst_amount, total: o.total_price,
-            pickup: o.pickup_date, pickupTime: o.pickup_time_range,
-          }))));
-      }).subscribe();
+    const orderSub = supabase.channel("orders-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, fetchOrders)
+      .subscribe();
 
-    const profileSub = supabase.channel('profiles-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-        supabase.from('profiles').select('*').order('created_at')
-          .then(({ data }) => data && setUsers(data.map(u => ({
-            ...u, name: u.full_name || u.email?.split('@')[0] || 'User',
-            joined: u.created_at?.split('T')[0],
-          }))));
-      }).subscribe();
+    const profileSub = supabase.channel("profiles-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, fetchUsers)
+      .subscribe();
 
     return () => {
       supabase.removeChannel(productSub);
@@ -123,41 +128,50 @@ function DataProvider({ children }) {
     };
   }, []);
 
-  // ── CRUD: Products ────────────────────────────────────────
   const addProduct = async (p) => {
-    await supabase.from('products').insert({
+    await supabase.from("products").insert({
       name: p.name, description: p.description, price: p.price,
       category: p.category, heat_level: p.heat, stock: p.stock,
       image_emoji: p.image, badges: p.badges, active: p.active,
     });
-    // Real-time subscription will update state automatically
+    await fetchProducts();
   };
 
   const updateProduct = async (id, updates) => {
     const dbUpdates = { ...updates };
     if (updates.heat !== undefined) { dbUpdates.heat_level = updates.heat; delete dbUpdates.heat; }
     if (updates.image !== undefined) { dbUpdates.image_emoji = updates.image; delete dbUpdates.image; }
-    await supabase.from('products').update(dbUpdates).eq('id', id);
+    await supabase.from("products").update(dbUpdates).eq("id", id);
+    await fetchProducts();
   };
 
   const deleteProduct = async (id) => {
-    await supabase.from('products').delete().eq('id', id);
+    await supabase.from("products").delete().eq("id", id);
+    await fetchProducts();
   };
 
-  // ── CRUD: Orders ──────────────────────────────────────────
   const updateOrder = async (id, updates) => {
-    const dbUpdates = {};
-    if (updates.status) dbUpdates.status = updates.status;
-    await supabase.from('orders').update(dbUpdates).eq('id', id);
+    await supabase.from("orders").update({ status: updates.status }).eq("id", id);
+    await fetchOrders();
   };
 
-  // ── CRUD: Users ───────────────────────────────────────────
   const updateUser = async (id, updates) => {
-    await supabase.from('profiles').update(updates).eq('id', id);
+    await supabase.from("profiles").update(updates).eq("id", id);
+    await fetchUsers();
   };
+
+  // Show loading spinner until data is ready
+  if (loading) return (
+    <div style={{ minHeight: "100vh", background: T.adminBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ textAlign: "center", color: "white" }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🌶️</div>
+        <div style={{ color: T.mapleLight, fontSize: 16, fontWeight: 600 }}>Loading Spice & Maple...</div>
+      </div>
+    </div>
+  );
 
   return (
-    <DataCtx.Provider value={{ products, orders, users, loading, addProduct, updateProduct, deleteProduct, updateOrder, updateUser }}>
+    <DataCtx.Provider value={{ products, orders, users, loading, addProduct, updateProduct, deleteProduct, updateOrder, updateUser, fetchProducts, fetchOrders, fetchUsers }}>
       {children}
     </DataCtx.Provider>
   );
@@ -881,8 +895,16 @@ function AdminGuard({ setPage, children }) {
 function AdminDashboard({ setPage }) {
   const [section, setSection] = useState("overview");
   const { user, logout } = useAuth();
-  const { orders } = useData();
+  const { orders, fetchOrders, fetchProducts, fetchUsers } = useData(); // ADD fetch functions
   const pendingOrders = orders.filter(o => o.status === "Pending" || o.status === "Processing").length;
+
+
+    // Refetch all data when admin opens dashboard
+  useEffect(() => {
+    fetchOrders && fetchOrders();
+    fetchProducts && fetchProducts();
+    fetchUsers && fetchUsers();
+  }, []);
 
   const navItems = [
     { key: "overview", label: "Overview", icon: <LayoutDashboard size={18} /> },
