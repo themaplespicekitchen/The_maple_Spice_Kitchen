@@ -165,7 +165,7 @@ function DataProvider({ children }) {
     <div style={{ minHeight: "100vh", background: T.adminBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ textAlign: "center", color: "white" }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🌶️</div>
-        <div style={{ color: T.mapleLight, fontSize: 16, fontWeight: 600 }}>Loading Spice & Maple...</div>
+        <div style={{ color: T.mapleLight, fontSize: 16, fontWeight: 600 }}>Loading The Maple Spice Kitchen...</div>
       </div>
     </div>
   );
@@ -396,18 +396,63 @@ function HomePage({ setPage }) {
   const { products } = useData();
   return (
     <div>
-      <div style={{ background: `linear-gradient(135deg,${T.charcoal} 0%,#1a0a00 100%)`, padding: "80px 20px", textAlign: "center", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(circle at 30% 50%,rgba(211,84,0,0.15) 0%,transparent 60%),radial-gradient(circle at 70% 50%,rgba(192,57,43,0.15) 0%,transparent 60%)` }} />
-        <div style={{ position: "relative", maxWidth: 700, margin: "0 auto" }}>
-          <div style={{ display: "inline-block", background: "rgba(211,84,0,0.2)", border: `1px solid ${T.maple}`, borderRadius: 20, padding: "6px 16px", color: T.mapleLight, fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 24 }}>🍁 Handcrafted in Toronto, Ontario</div>
-          <h1 style={{ fontFamily: "Georgia,serif", fontSize: "clamp(36px,6vw,64px)", color: T.white, margin: "0 0 20px", lineHeight: 1.15, fontWeight: 700 }}>Where <span style={{ color: T.mapleLight }}>Maple</span> Meets <span style={{ color: "#E74C3C" }}>Fire</span></h1>
-          <p style={{ color: "#BBA99A", fontSize: 18, lineHeight: 1.7, marginBottom: 36 }}>Artisan hot sauces, glazes and spice blends crafted with Canadian ingredients. Pre-order for local pickup in Toronto.</p>
-          <button onClick={() => setPage("shop")} style={{ background: `linear-gradient(135deg,${T.red},${T.maple})`, border: "none", color: "white", padding: "14px 32px", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer" }}>Shop Now 🌶️</button>
+      {/* Hero */}
+      <div style={{ background: `linear-gradient(135deg,${T.charcoal} 0%,#1a0a00 100%)`, padding: "80px 20px", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(circle at 30% 50%,rgba(211,84,0,0.2) 0%,transparent 60%),radial-gradient(circle at 70% 50%,rgba(192,57,43,0.2) 0%,transparent 60%)` }} />
+        <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center", position: "relative" }} className="hero-grid">
+          
+          {/* Left — Text */}
+          <div>
+            <div style={{ display: "inline-block", background: "rgba(211,84,0,0.2)", border: `1px solid ${T.maple}`, borderRadius: 20, padding: "6px 16px", color: T.mapleLight, fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 24 }}>🍁 Handcrafted in Toronto, Ontario</div>
+            <h1 style={{ fontFamily: "Georgia,serif", fontSize: "clamp(28px,4vw,58px)", color: T.white, margin: "0 0 20px", lineHeight: 1.15, fontWeight: 700 }}>
+              Where <span style={{ color: T.mapleLight }}>Maple</span> Meets <span style={{ color: "#E74C3C" }}>Fire</span>
+            </h1>
+            <p style={{ color: "#BBA99A", fontSize: 17, lineHeight: 1.7, marginBottom: 36 }}>
+              Artisan hot sauces, glazes and spice blends crafted with Canadian ingredients. Pre-order for local pickup in Toronto.
+            </p>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button onClick={() => setPage("shop")} style={{ background: `linear-gradient(135deg,${T.red},${T.maple})`, border: "none", color: "white", padding: "14px 32px", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer" }}>Shop Now 🌶️</button>
+              <button onClick={() => setPage("auth")} style={{ background: "transparent", border: `2px solid rgba(255,255,255,0.2)`, color: T.cream, padding: "14px 24px", borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: "pointer" }}>Create Account</button>
+            </div>
+          </div>
+
+          {/* Right — Food Images Grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {[
+              { url: "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=400&q=80", label: "Hot Sauce" },
+              { url: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400&q=80", label: "Spice Blend" },
+              { url: "https://images.unsplash.com/photo-1583577612013-4fdf5be36297?w=400&q=80", label: "Chili Oil" },
+              { url: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=80", label: "Fresh Veggies" },
+            ].map((img, i) => (
+              <div key={i} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "1", position: "relative", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}>
+                <img src={img.url} alt={img.label}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.05)", transition: "transform 0.4s" }}
+                  onMouseEnter={e => e.target.style.transform = "scale(1.12)"}
+                  onMouseLeave={e => e.target.style.transform = "scale(1.05)"} />
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(0,0,0,0.5) 0%,transparent 60%)" }} />
+                <span style={{ position: "absolute", bottom: 8, left: 10, color: "white", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{img.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* Responsive — stack on mobile */}
+        <style>{`
+          @media(max-width:768px){
+            .hero-grid { grid-template-columns: 1fr !important; }
+          }
+        `}</style>
       </div>
+
+      {/* Features */}
       <div style={{ background: T.lightGray, padding: "48px 20px" }}>
         <div style={{ maxWidth: 900, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 24 }}>
-          {[{icon:<Leaf size={24} color={T.maple}/>,title:"100% Natural",desc:"No preservatives. Just real Canadian ingredients."},{icon:<MapPin size={24} color={T.maple}/>,title:"Local Pickup",desc:"Pre-order online, pick up at our Toronto kitchen."},{icon:<Flame size={24} color={T.maple}/>,title:"Heat Levels",desc:"From mild to inferno — something for everyone."},{icon:<Shield size={24} color={T.maple}/>,title:"Secure & Canadian",desc:"Data stored in Montreal. No data sold ever."}].map((f,i) => (
+          {[
+            { icon: <Leaf size={24} color={T.maple} />, title: "100% Natural", desc: "No preservatives. Just real Canadian ingredients." },
+            { icon: <MapPin size={24} color={T.maple} />, title: "Local Pickup", desc: "Pre-order online, pick up at our Toronto kitchen." },
+            { icon: <Flame size={24} color={T.maple} />, title: "Heat Levels", desc: "From mild to inferno — something for everyone." },
+            { icon: <Shield size={24} color={T.maple} />, title: "Secure & Canadian", desc: "Data stored in Montreal. No data sold ever." },
+          ].map((f, i) => (
             <div key={i} style={{ background: T.white, borderRadius: 12, padding: 24, textAlign: "center" }}>
               <div style={{ marginBottom: 12 }}>{f.icon}</div>
               <div style={{ fontFamily: "Georgia,serif", fontWeight: 700, fontSize: 16, color: T.charcoal, marginBottom: 8 }}>{f.title}</div>
@@ -416,6 +461,8 @@ function HomePage({ setPage }) {
           ))}
         </div>
       </div>
+
+      {/* Featured Products */}
       <div style={{ padding: "56px 20px", maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <h2 style={{ fontFamily: "Georgia,serif", fontSize: 32, color: T.charcoal, margin: "0 0 12px" }}>Featured Products</h2>
@@ -442,7 +489,10 @@ function ProductCard({ product }) {
         onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.12)"; }}
         onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
         <div style={{ background: `linear-gradient(135deg,${T.lightGray},${T.cream})`, padding: "32px 20px", textAlign: "center", position: "relative" }}>
-          <div style={{ fontSize: 64 }}>{product.image}</div>
+          {product.image?.startsWith("http")
+  ? <img src={product.image} alt={product.name} style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 8 }} onError={e => { e.target.style.display="none"; }} />
+  : <div style={{ fontSize: 64 }}>{product.image}</div>
+}
           <div style={{ position: "absolute", top: 12, left: 12, display: "flex", flexWrap: "wrap", gap: 4 }}>
             {product.badges?.map(b => <span key={b} style={{ background: b === "Limited Run" ? T.red : b === "Best Seller" ? T.maple : T.charcoal, color: "white", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, textTransform: "uppercase" }}>{b}</span>)}
           </div>
@@ -483,7 +533,7 @@ function PreOrderModal({ product, onClose, onAdd }) {
           <div style={{ fontSize: 56, marginBottom: 16 }}>🌶️</div>
           <h2 style={{ fontFamily: "Georgia,serif", color: T.charcoal, fontSize: 24, margin: "0 0 12px" }}>Sign In to Order</h2>
           <p style={{ color: T.warmGray, fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
-            You need an account to pre-order from Spice & Maple. It's free and takes 30 seconds!
+            You need an account to pre-order from The Maple Spice Kitchen. It's free and takes 30 seconds!
           </p>
           <div style={{ background: T.lightGray, borderRadius: 10, padding: 16, marginBottom: 24 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
@@ -974,7 +1024,7 @@ function AdminOverview() {
     <div style={{ padding: 32 }}>
       <div style={{ marginBottom: 32 }}>
         <h1 style={{ color: T.white, fontFamily: "Georgia,serif", fontSize: 28, margin: "0 0 6px" }}>Dashboard Overview</h1>
-        <p style={{ color: "#666", fontSize: 14 }}>Welcome back! Here's what's happening at Spice & Maple.</p>
+        <p style={{ color: "#666", fontSize: 14 }}>Welcome back! Here's what's happening at The Maple Spice Kitchen.</p>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 20, marginBottom: 36 }}>
         {stats.map((s, i) => (
@@ -1140,12 +1190,64 @@ function AdminProducts() {
               <input type="range" min={1} max={5} value={form.heat} onChange={e => setForm(p => ({ ...p, heat: parseInt(e.target.value) }))} style={{ width: "100%" }} />
               <div style={{ marginTop: 4 }}><HeatLevel level={form.heat} /></div>
             </div>
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#AAA", marginBottom: 6 }}>Emoji Icon</label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {EMOJIS.map(e => <button key={e} onClick={() => setForm(p => ({ ...p, image: e }))} style={{ fontSize: 20, padding: "6px 8px", borderRadius: 6, border: `2px solid ${form.image === e ? T.maple : T.adminBorder}`, background: form.image === e ? "rgba(211,84,0,0.15)" : "transparent", cursor: "pointer" }}>{e}</button>)}
-              </div>
-            </div>
+            <div style={{ gridColumn: "1/-1" }}>
+  <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#AAA", marginBottom: 10 }}>Product Image</label>
+  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+    
+    {/* Option A — Upload image file */}
+    <div style={{ background: T.adminBg, border: `2px dashed ${T.adminBorder}`, borderRadius: 10, padding: 20, textAlign: "center" }}>
+      <div style={{ fontSize: 32, marginBottom: 8 }}>📁</div>
+      <div style={{ color: "#888", fontSize: 13, marginBottom: 12 }}>Upload a product photo</div>
+      <input type="file" accept="image/*" id="product-image-upload" style={{ display: "none" }}
+        onChange={async e => {
+          const file = e.target.files[0];
+          if (!file) return;
+          // Upload to Supabase Storage
+          const fileName = `${Date.now()}-${file.name}`;
+          const { data, error } = await supabase.storage.from("product-images").upload(fileName, file);
+          if (!error) {
+            const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
+            setForm(p => ({ ...p, image: urlData.publicUrl, imageType: "url" }));
+          }
+        }} />
+      <label htmlFor="product-image-upload" style={{ background: `linear-gradient(135deg,${T.red},${T.maple})`, color: "white", padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+        Choose Image
+      </label>
+      {form.imageType === "url" && form.image?.startsWith("http") && (
+        <div style={{ marginTop: 12 }}>
+          <img src={form.image} alt="preview" style={{ width: "100%", height: 100, objectFit: "cover", borderRadius: 8 }} />
+          <div style={{ color: "#27AE60", fontSize: 12, marginTop: 4 }}>✓ Image uploaded</div>
+        </div>
+      )}
+    </div>
+
+    {/* Option B — Paste image URL */}
+    <div style={{ background: T.adminBg, border: `2px dashed ${T.adminBorder}`, borderRadius: 10, padding: 20 }}>
+      <div style={{ fontSize: 32, marginBottom: 8, textAlign: "center" }}>🔗</div>
+      <div style={{ color: "#888", fontSize: 13, marginBottom: 10, textAlign: "center" }}>Or paste an image URL</div>
+      <input value={form.imageType === "url" && form.image?.startsWith("http") ? form.image : ""} 
+        onChange={e => setForm(p => ({ ...p, image: e.target.value, imageType: "url" }))}
+        placeholder="https://example.com/photo.jpg"
+        style={{ width: "100%", padding: "8px 10px", background: T.adminCard, border: `1px solid ${T.adminBorder}`, borderRadius: 6, color: T.white, fontSize: 13, boxSizing: "border-box", marginBottom: 10 }} />
+      {form.imageType === "url" && form.image?.startsWith("http") && (
+        <img src={form.image} alt="preview" style={{ width: "100%", height: 80, objectFit: "cover", borderRadius: 6 }} onError={e => e.target.style.display="none"} />
+      )}
+    </div>
+  </div>
+
+  {/* Option C — Still keep emoji as fallback */}
+  <div style={{ marginTop: 16 }}>
+    <div style={{ color: "#666", fontSize: 12, marginBottom: 8 }}>Or use an emoji as placeholder:</div>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      {EMOJIS.map(e => (
+        <button key={e} onClick={() => setForm(p => ({ ...p, image: e, imageType: "emoji" }))}
+          style={{ fontSize: 20, padding: "6px 8px", borderRadius: 6, border: `2px solid ${form.image === e ? T.maple : T.adminBorder}`, background: form.image === e ? "rgba(211,84,0,0.15)" : "transparent", cursor: "pointer" }}>
+          {e}
+        </button>
+      ))}
+    </div>
+  </div>
+</div>
             <div style={{ gridColumn: "1/-1" }}>
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#AAA", marginBottom: 6 }}>Description</label>
               <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} style={{ width: "100%", padding: "10px 12px", background: T.adminBg, border: `1px solid ${T.adminBorder}`, borderRadius: 8, color: T.white, fontSize: 14, boxSizing: "border-box", resize: "vertical" }} />
@@ -1356,7 +1458,7 @@ function Footer({ setPage }) {
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 32, marginBottom: 40 }}>
           <div>
-            <div style={{ fontFamily: "Georgia,serif", color: T.white, fontSize: 20, fontWeight: 700, marginBottom: 12 }}>🌶️ Spice & Maple</div>
+            <div style={{ fontFamily: "Georgia,serif", color: T.white, fontSize: 20, fontWeight: 700, marginBottom: 12 }}> The Maple Spice Kitchen</div>
             <p style={{ color: "#888", fontSize: 13, lineHeight: 1.7 }}>Artisan hot sauces and spice blends crafted with love in Toronto, Ontario.</p>
           </div>
           <div>
@@ -1375,7 +1477,7 @@ function Footer({ setPage }) {
           </div>
         </div>
         <div style={{ borderTop: `1px solid rgba(255,255,255,0.1)`, paddingTop: 20, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-          <span style={{ color: "#666", fontSize: 12 }}>© 2025 Spice & Maple Artisan Kitchen Co. Toronto, Ontario, Canada.</span>
+          <span style={{ color: "#666", fontSize: 12 }}>© 2026 The Maple Spice Kitchen Artisan Kitchen Co. Toronto, Ontario, Canada.</span>
           <span style={{ color: "#666", fontSize: 12 }}>Data stored in Canada · Timezone: America/Toronto</span>
         </div>
       </div>
