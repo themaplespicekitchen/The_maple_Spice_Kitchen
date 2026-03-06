@@ -129,21 +129,46 @@ function DataProvider({ children }) {
   }, []);
 
   const addProduct = async (p) => {
-    await supabase.from("products").insert({
-      name: p.name, description: p.description, price: p.price,
-      category: p.category, heat_level: p.heat, stock: p.stock,
-      image_emoji: p.image, badges: p.badges, active: p.active,
-    });
-    await fetchProducts();
-  };
+  const { error } = await supabase.from("products").insert({
+    name: p.name,
+    description: p.description,
+    price: parseFloat(p.price) || 0,
+    category: p.category,
+    heat_level: parseInt(p.heat) || 3,
+    stock: parseInt(p.stock) || 0,
+    image_emoji: p.image,
+    badges: Array.isArray(p.badges) ? p.badges : p.badges?.split(",").map(b => b.trim()).filter(Boolean) || [],
+    active: p.active ?? true,
+  });
+
+  if (error) console.error("Add product error:", error.message);
+  await fetchProducts();
+};
 
   const updateProduct = async (id, updates) => {
-    const dbUpdates = { ...updates };
-    if (updates.heat !== undefined) { dbUpdates.heat_level = updates.heat; delete dbUpdates.heat; }
-    if (updates.image !== undefined) { dbUpdates.image_emoji = updates.image; delete dbUpdates.image; }
-    await supabase.from("products").update(dbUpdates).eq("id", id);
-    await fetchProducts();
-  };
+  // Map frontend field names to database column names
+  const dbUpdates = {};
+  
+  if (updates.name !== undefined) dbUpdates.name = updates.name;
+  if (updates.description !== undefined) dbUpdates.description = updates.description;
+  if (updates.price !== undefined) dbUpdates.price = updates.price;
+  if (updates.category !== undefined) dbUpdates.category = updates.category;
+  if (updates.stock !== undefined) dbUpdates.stock = updates.stock;
+  if (updates.active !== undefined) dbUpdates.active = updates.active;
+  if (updates.badges !== undefined) dbUpdates.badges = updates.badges;
+  if (updates.heat !== undefined) dbUpdates.heat_level = updates.heat;
+  if (updates.heat_level !== undefined) dbUpdates.heat_level = updates.heat_level;
+  if (updates.image !== undefined) dbUpdates.image_emoji = updates.image;
+  if (updates.image_emoji !== undefined) dbUpdates.image_emoji = updates.image_emoji;
+
+  const { error } = await supabase
+    .from("products")
+    .update(dbUpdates)
+    .eq("id", id);
+
+  if (error) console.error("Update product error:", error.message);
+  await fetchProducts();
+};
 
   const deleteProduct = async (id) => {
     await supabase.from("products").delete().eq("id", id);
