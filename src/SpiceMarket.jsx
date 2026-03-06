@@ -186,27 +186,27 @@ function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Get session on load
+    // Get existing session on page load
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({
           email: session.user.email,
-          name: session.user.email.split('@')[0],
+          name: session.user.email.split("@")[0],
           avatar: session.user.email[0].toUpperCase(),
-          role: session.user.email === 'admin@spicemaple.ca' ? 'admin' : 'user',
+          role: session.user.email === "admin@spicemaple.ca" ? "admin" : "user",
           id: session.user.id,
         });
       }
     });
 
-    // Listen for auth changes
+    // Listen for auth changes (login/logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser({
           email: session.user.email,
-          name: session.user.email.split('@')[0],
+          name: session.user.email.split("@")[0],
           avatar: session.user.email[0].toUpperCase(),
-          role: session.user.email === 'admin@spicemaple.ca' ? 'admin' : 'user',
+          role: session.user.email === "admin@spicemaple.ca" ? "admin" : "user",
           id: session.user.id,
         });
       } else {
@@ -220,14 +220,15 @@ function AuthProvider({ children }) {
   const login = async (email, password, isAdmin = false) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { ok: false };
-    const role = email === 'admin@spicemaple.ca' ? 'admin' : 'user';
-    if (isAdmin && role !== 'admin') return { ok: false };
+    const role = email === "admin@spicemaple.ca" ? "admin" : "user";
+    if (isAdmin && role !== "admin") return { ok: false };
     return { ok: true, role };
   };
 
   const signup = async (email, password) => {
     const { error } = await supabase.auth.signUp({ email, password });
-    return !error;
+    if (error) return false;
+    return true;
   };
 
   const logout = async () => {
@@ -239,6 +240,7 @@ function AuthProvider({ children }) {
     await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset`,
     });
+    return true;
   };
 
   return (
@@ -580,23 +582,29 @@ function AuthPage({ setPage }) {
     if (next >= 3) { setTab("admin"); setEmail(""); setPassword(""); setMsg(null); setDotClicks(0); }
   };
 
-  const handleSubmit = () => {
-    setMsg(null);
-    if (tab === "admin") {
-      const res = login(email, password, true);
-      if (res.ok) setPage("admin");
-      else setMsg({ type: "error", text: "Invalid admin credentials." });
-    } else if (tab === "login") {
-      const res = login(email, password);
-      if (res.ok) setPage("profile");
-      else setMsg({ type: "error", text: "Invalid credentials. Try any email + password to demo." });
-    } else if (tab === "signup") {
-      signup(email, password);
-      setPage("profile");
+  const handleSubmit = async () => {
+  setMsg(null);
+  if (tab === "admin") {
+    const res = await login(email, password, true);
+    if (res.ok) setPage("admin");
+    else setMsg({ type: "error", text: "Invalid admin credentials." });
+  } else if (tab === "login") {
+    const res = await login(email, password);
+    if (res.ok) setPage("home");
+    else setMsg({ type: "error", text: "Invalid email or password." });
+  } else if (tab === "signup") {
+    const ok = await signup(email, password);
+    if (ok) {
+      setMsg({ type: "success", text: "Account created! You can now sign in." });
+      setTab("login");
     } else {
-      setMsg({ type: "success", text: "If that email exists, a reset link has been sent." });
+      setMsg({ type: "error", text: "Signup failed. Try a different email." });
     }
-  };
+  } else {
+    await resetPassword(email);
+    setMsg({ type: "success", text: "Reset link sent to your email." });
+  }
+};
 
   const isAdmin = tab === "admin";
 
