@@ -513,11 +513,11 @@ function ProductCard({ product }) {
       <div style={{ background: T.white, borderRadius: 16, overflow: "hidden", border: `1px solid ${T.border}`, transition: "transform 0.2s,box-shadow 0.2s" }}
         onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.12)"; }}
         onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
-        <div style={{ background: `linear-gradient(135deg,${T.lightGray},${T.cream})`, padding: "32px 20px", textAlign: "center", position: "relative" }}>
-          {product.image?.startsWith("http")
-  ? <img src={product.image} alt={product.name} style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 8 }} onError={e => { e.target.style.display="none"; }} />
-  : <div style={{ fontSize: 64 }}>{product.image}</div>
-}
+        <div style={{ background: `linear-gradient(135deg,${T.lightGray},${T.cream})`, padding: product.image?.startsWith("http") ? "0" : "32px 20px", textAlign: "center", position: "relative" }}>
+  {product.image?.startsWith("http")
+    ? <img src={product.image} alt={product.name} style={{ width: "100%", height: 200, objectFit: "cover" }} onError={e => { e.target.style.display="none"; }} />
+    : <div style={{ fontSize: 64, padding: "32px 20px" }}>{product.image}</div>
+  }
           <div style={{ position: "absolute", top: 12, left: 12, display: "flex", flexWrap: "wrap", gap: 4 }}>
             {product.badges?.map(b => <span key={b} style={{ background: b === "Limited Run" ? T.red : b === "Best Seller" ? T.maple : T.charcoal, color: "white", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, textTransform: "uppercase" }}>{b}</span>)}
           </div>
@@ -1169,18 +1169,57 @@ function AdminProducts() {
   const { products, addProduct, updateProduct, deleteProduct } = useData();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: "", price: "", category: "Sauces", heat: 3, image: "🌶️", description: "", badges: "", stock: "", active: true });
+  const [uploading, setUploading] = useState(false);
+  const [form, setForm] = useState({ name: "", price: "", category: "Sauces", heat: 3, image: "🌶️", imageType: "emoji", description: "", badges: "", stock: "", active: true });
 
-  const resetForm = () => setForm({ name: "", price: "", category: "Sauces", heat: 3, image: "🌶️", description: "", badges: "", stock: "", active: true });
+  const resetForm = () => setForm({ name: "", price: "", category: "Sauces", heat: 3, image: "🌶️", imageType: "emoji", description: "", badges: "", stock: "", active: true });
 
+  // FIX 1 — handleSave correctly maps image and all fields
   const handleSave = () => {
-    const data = { ...form, price: parseFloat(form.price) || 0, heat: parseInt(form.heat) || 3, stock: parseInt(form.stock) || 0, badges: typeof form.badges === "string" ? form.badges.split(",").map(b => b.trim()).filter(Boolean) : form.badges };
-    if (editing) { updateProduct(editing, data); setEditing(null); }
-    else addProduct(data);
-    resetForm(); setShowForm(false);
+  const data = {
+    ...form,
+    price: parseFloat(form.price) || 0,
+    heat: parseInt(form.heat) || 3,
+    stock: parseInt(form.stock) || 0,
+    badges: typeof form.badges === "string"
+      ? form.badges.split(",").map(b => b.trim()).filter(Boolean)
+      : form.badges,
+    // Make sure image is saved correctly regardless of type
+    image: form.image || "🌶️",
+  };
+  if (editing) { updateProduct(editing, data); setEditing(null); }
+  else addProduct(data);
+  resetForm();
+  setShowForm(false);
+};
+
+  // FIX 2 — startEdit correctly loads imageType so form shows existing image
+  const startEdit = (p) => {
+    setEditing(p.id);
+    setForm({
+      ...p,
+      badges: Array.isArray(p.badges) ? p.badges.join(", ") : p.badges || "",
+      imageType: p.image?.startsWith("http") ? "url" : "emoji",
+    });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const startEdit = (p) => { setEditing(p.id); setForm({ ...p, badges: Array.isArray(p.badges) ? p.badges.join(", ") : p.badges }); setShowForm(true); };
+  // FIX 3 — image upload handler
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    const fileName = `${Date.now()}-${file.name.replace(/\s/g, "_")}`;
+    const { error } = await supabase.storage.from("product-images").upload(fileName, file);
+    if (!error) {
+      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
+      setForm(p => ({ ...p, image: urlData.publicUrl, imageType: "url" }));
+    } else {
+      alert("Upload failed: " + error.message);
+    }
+    setUploading(false);
+  };
 
   return (
     <div style={{ padding: 32 }}>
@@ -1189,7 +1228,8 @@ function AdminProducts() {
           <h1 style={{ color: T.white, fontFamily: "Georgia,serif", fontSize: 28, margin: "0 0 6px" }}>Products</h1>
           <p style={{ color: "#666", fontSize: 14, margin: 0 }}>Add, edit, toggle visibility and manage your product catalogue.</p>
         </div>
-        <button onClick={() => { resetForm(); setEditing(null); setShowForm(true); }} style={{ background: `linear-gradient(135deg,${T.red},${T.maple})`, border: "none", color: "white", padding: "10px 20px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+        <button onClick={() => { resetForm(); setEditing(null); setShowForm(true); }}
+          style={{ background: `linear-gradient(135deg,${T.red},${T.maple})`, border: "none", color: "white", padding: "10px 20px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <Plus size={16} /> Add Product
         </button>
       </div>
@@ -1198,89 +1238,110 @@ function AdminProducts() {
         <div style={{ background: T.adminCard, border: `1px solid ${T.adminBorder}`, borderRadius: 12, padding: 28, marginBottom: 28 }}>
           <h3 style={{ color: T.white, fontFamily: "Georgia,serif", margin: "0 0 24px", fontSize: 20 }}>{editing ? "Edit Product" : "New Product"}</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 16 }}>
+
+            {/* Basic fields */}
             {[{ key: "name", label: "Product Name", type: "text" }, { key: "price", label: "Price (CAD)", type: "number" }, { key: "stock", label: "Stock Quantity", type: "number" }].map(f => (
               <div key={f.key}>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#AAA", marginBottom: 6 }}>{f.label}</label>
-                <input type={f.type} value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} style={{ width: "100%", padding: "10px 12px", background: T.adminBg, border: `1px solid ${T.adminBorder}`, borderRadius: 8, color: T.white, fontSize: 14, boxSizing: "border-box" }} />
+                <input type={f.type} value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+                  style={{ width: "100%", padding: "10px 12px", background: T.adminBg, border: `1px solid ${T.adminBorder}`, borderRadius: 8, color: T.white, fontSize: 14, boxSizing: "border-box" }} />
               </div>
             ))}
+
+            {/* Category */}
             <div>
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#AAA", marginBottom: 6 }}>Category</label>
-              <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} style={{ width: "100%", padding: "10px 12px", background: T.adminBg, border: `1px solid ${T.adminBorder}`, borderRadius: 8, color: T.white, fontSize: 14 }}>
+              <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
+                style={{ width: "100%", padding: "10px 12px", background: T.adminBg, border: `1px solid ${T.adminBorder}`, borderRadius: 8, color: T.white, fontSize: 14 }}>
                 {["Sauces", "Salsas", "Dry Rubs", "Oils", "Glazes"].map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
+
+            {/* Heat Level */}
             <div>
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#AAA", marginBottom: 6 }}>Heat Level (1-5): Level {form.heat}</label>
               <input type="range" min={1} max={5} value={form.heat} onChange={e => setForm(p => ({ ...p, heat: parseInt(e.target.value) }))} style={{ width: "100%" }} />
               <div style={{ marginTop: 4 }}><HeatLevel level={form.heat} /></div>
             </div>
+
+            {/* FIX 4 — Image section with correct preview for existing images */}
             <div style={{ gridColumn: "1/-1" }}>
-  <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#AAA", marginBottom: 10 }}>Product Image</label>
-  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-    
-    {/* Option A — Upload image file */}
-    <div style={{ background: T.adminBg, border: `2px dashed ${T.adminBorder}`, borderRadius: 10, padding: 20, textAlign: "center" }}>
-      <div style={{ fontSize: 32, marginBottom: 8 }}>📁</div>
-      <div style={{ color: "#888", fontSize: 13, marginBottom: 12 }}>Upload a product photo</div>
-      <input type="file" accept="image/*" id="product-image-upload" style={{ display: "none" }}
-        onChange={async e => {
-          const file = e.target.files[0];
-          if (!file) return;
-          // Upload to Supabase Storage
-          const fileName = `${Date.now()}-${file.name}`;
-          const { data, error } = await supabase.storage.from("product-images").upload(fileName, file);
-          if (!error) {
-            const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
-            setForm(p => ({ ...p, image: urlData.publicUrl, imageType: "url" }));
-          }
-        }} />
-      <label htmlFor="product-image-upload" style={{ background: `linear-gradient(135deg,${T.red},${T.maple})`, color: "white", padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-        Choose Image
-      </label>
-      {form.imageType === "url" && form.image?.startsWith("http") && (
-        <div style={{ marginTop: 12 }}>
-          <img src={form.image} alt="preview" style={{ width: "100%", height: 100, objectFit: "cover", borderRadius: 8 }} />
-          <div style={{ color: "#27AE60", fontSize: 12, marginTop: 4 }}>✓ Image uploaded</div>
-        </div>
-      )}
-    </div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#AAA", marginBottom: 10 }}>Product Image</label>
 
-    {/* Option B — Paste image URL */}
-    <div style={{ background: T.adminBg, border: `2px dashed ${T.adminBorder}`, borderRadius: 10, padding: 20 }}>
-      <div style={{ fontSize: 32, marginBottom: 8, textAlign: "center" }}>🔗</div>
-      <div style={{ color: "#888", fontSize: 13, marginBottom: 10, textAlign: "center" }}>Or paste an image URL</div>
-      <input value={form.imageType === "url" && form.image?.startsWith("http") ? form.image : ""} 
-        onChange={e => setForm(p => ({ ...p, image: e.target.value, imageType: "url" }))}
-        placeholder="https://example.com/photo.jpg"
-        style={{ width: "100%", padding: "8px 10px", background: T.adminCard, border: `1px solid ${T.adminBorder}`, borderRadius: 6, color: T.white, fontSize: 13, boxSizing: "border-box", marginBottom: 10 }} />
-      {form.imageType === "url" && form.image?.startsWith("http") && (
-        <img src={form.image} alt="preview" style={{ width: "100%", height: 80, objectFit: "cover", borderRadius: 6 }} onError={e => e.target.style.display="none"} />
-      )}
-    </div>
-  </div>
+              {/* Current image preview */}
+              {form.image && (
+                <div style={{ marginBottom: 16, padding: 12, background: T.adminBg, borderRadius: 8, border: `1px solid ${T.adminBorder}`, display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ color: "#888", fontSize: 13 }}>Current:</span>
+                  {form.image.startsWith("http")
+                    ? <img src={form.image} alt="current" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 8 }} onError={e => e.target.style.display = "none"} />
+                    : <span style={{ fontSize: 40 }}>{form.image}</span>
+                  }
+                  {form.image.startsWith("http") && <span style={{ color: "#27AE60", fontSize: 12 }}>✓ Image set</span>}
+                </div>
+              )}
 
-  {/* Option C — Still keep emoji as fallback */}
-  <div style={{ marginTop: 16 }}>
-    <div style={{ color: "#666", fontSize: 12, marginBottom: 8 }}>Or use an emoji as placeholder:</div>
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-      {EMOJIS.map(e => (
-        <button key={e} onClick={() => setForm(p => ({ ...p, image: e, imageType: "emoji" }))}
-          style={{ fontSize: 20, padding: "6px 8px", borderRadius: 6, border: `2px solid ${form.image === e ? T.maple : T.adminBorder}`, background: form.image === e ? "rgba(211,84,0,0.15)" : "transparent", cursor: "pointer" }}>
-          {e}
-        </button>
-      ))}
-    </div>
-  </div>
-</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                {/* Upload file */}
+                <div style={{ background: T.adminBg, border: `2px dashed ${T.adminBorder}`, borderRadius: 10, padding: 20, textAlign: "center" }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>📁</div>
+                  <div style={{ color: "#888", fontSize: 13, marginBottom: 12 }}>Upload a product photo</div>
+                  <input type="file" accept="image/*" id="product-image-upload" style={{ display: "none" }} onChange={handleImageUpload} />
+                  <label htmlFor="product-image-upload"
+                    style={{ background: uploading ? "#555" : `linear-gradient(135deg,${T.red},${T.maple})`, color: "white", padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: uploading ? "not-allowed" : "pointer" }}>
+                    {uploading ? "Uploading..." : "Choose Image"}
+                  </label>
+                  {form.imageType === "url" && form.image?.startsWith("http") && (
+                    <div style={{ marginTop: 12 }}>
+                      <img src={form.image} alt="preview" style={{ width: "100%", height: 100, objectFit: "cover", borderRadius: 8 }} />
+                      <div style={{ color: "#27AE60", fontSize: 12, marginTop: 4 }}>✓ Uploaded</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Paste URL */}
+                <div style={{ background: T.adminBg, border: `2px dashed ${T.adminBorder}`, borderRadius: 10, padding: 20 }}>
+                  <div style={{ fontSize: 32, marginBottom: 8, textAlign: "center" }}>🔗</div>
+                  <div style={{ color: "#888", fontSize: 13, marginBottom: 10, textAlign: "center" }}>Or paste an image URL</div>
+                  <input
+                    value={form.imageType === "url" && form.image?.startsWith("http") ? form.image : ""}
+                    onChange={e => setForm(p => ({ ...p, image: e.target.value, imageType: "url" }))}
+                    placeholder="https://example.com/photo.jpg"
+                    style={{ width: "100%", padding: "8px 10px", background: T.adminCard, border: `1px solid ${T.adminBorder}`, borderRadius: 6, color: T.white, fontSize: 13, boxSizing: "border-box", marginBottom: 10 }} />
+                  {form.imageType === "url" && form.image?.startsWith("http") && (
+                    <img src={form.image} alt="preview" style={{ width: "100%", height: 80, objectFit: "cover", borderRadius: 6 }} onError={e => e.target.style.display = "none"} />
+                  )}
+                </div>
+              </div>
+
+              {/* Emoji fallback */}
+              <div style={{ marginTop: 16 }}>
+                <div style={{ color: "#666", fontSize: 12, marginBottom: 8 }}>Or use an emoji as placeholder:</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {EMOJIS.map(e => (
+                    <button key={e} onClick={() => setForm(p => ({ ...p, image: e, imageType: "emoji" }))}
+                      style={{ fontSize: 20, padding: "6px 8px", borderRadius: 6, border: `2px solid ${form.image === e ? T.maple : T.adminBorder}`, background: form.image === e ? "rgba(211,84,0,0.15)" : "transparent", cursor: "pointer" }}>
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
             <div style={{ gridColumn: "1/-1" }}>
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#AAA", marginBottom: 6 }}>Description</label>
-              <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} style={{ width: "100%", padding: "10px 12px", background: T.adminBg, border: `1px solid ${T.adminBorder}`, borderRadius: 8, color: T.white, fontSize: 14, boxSizing: "border-box", resize: "vertical" }} />
+              <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3}
+                style={{ width: "100%", padding: "10px 12px", background: T.adminBg, border: `1px solid ${T.adminBorder}`, borderRadius: 8, color: T.white, fontSize: 14, boxSizing: "border-box", resize: "vertical" }} />
             </div>
+
+            {/* Badges */}
             <div>
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#AAA", marginBottom: 6 }}>Badges (comma-separated)</label>
-              <input value={form.badges} onChange={e => setForm(p => ({ ...p, badges: e.target.value }))} placeholder="Best Seller, Vegan, Limited Run" style={{ width: "100%", padding: "10px 12px", background: T.adminBg, border: `1px solid ${T.adminBorder}`, borderRadius: 8, color: T.white, fontSize: 14, boxSizing: "border-box" }} />
+              <input value={form.badges} onChange={e => setForm(p => ({ ...p, badges: e.target.value }))} placeholder="Best Seller, Vegan, Limited Run"
+                style={{ width: "100%", padding: "10px 12px", background: T.adminBg, border: `1px solid ${T.adminBorder}`, borderRadius: 8, color: T.white, fontSize: 14, boxSizing: "border-box" }} />
             </div>
+
+            {/* Visible toggle */}
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <label style={{ fontSize: 13, fontWeight: 600, color: "#AAA" }}>Visible to customers</label>
               <button onClick={() => setForm(p => ({ ...p, active: !p.active }))} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
@@ -1288,13 +1349,21 @@ function AdminProducts() {
               </button>
             </div>
           </div>
+
           <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-            <button onClick={handleSave} style={{ background: `linear-gradient(135deg,${T.red},${T.maple})`, border: "none", color: "white", padding: "11px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}><Save size={16} /> {editing ? "Save Changes" : "Add Product"}</button>
-            <button onClick={() => { setShowForm(false); setEditing(null); resetForm(); }} style={{ background: "transparent", border: `1px solid ${T.adminBorder}`, color: "#888", padding: "11px 20px", borderRadius: 8, fontSize: 14, cursor: "pointer" }}>Cancel</button>
+            <button onClick={handleSave}
+              style={{ background: `linear-gradient(135deg,${T.red},${T.maple})`, border: "none", color: "white", padding: "11px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+              <Save size={16} /> {editing ? "Save Changes" : "Add Product"}
+            </button>
+            <button onClick={() => { setShowForm(false); setEditing(null); resetForm(); }}
+              style={{ background: "transparent", border: `1px solid ${T.adminBorder}`, color: "#888", padding: "11px 20px", borderRadius: 8, fontSize: 14, cursor: "pointer" }}>
+              Cancel
+            </button>
           </div>
         </div>
       )}
 
+      {/* Products Table */}
       <div style={{ background: T.adminCard, border: `1px solid ${T.adminBorder}`, borderRadius: 12, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -1307,9 +1376,13 @@ function AdminProducts() {
           <tbody>
             {products.map(p => (
               <tr key={p.id} style={{ borderBottom: `1px solid ${T.adminBorder}`, opacity: p.active ? 1 : 0.45 }}>
+                {/* FIX 5 — show image or emoji correctly in table */}
                 <td style={{ padding: "14px 16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 24 }}>{p.image}</span>
+                    {p.image?.startsWith("http")
+                      ? <img src={p.image} alt={p.name} style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} onError={e => e.target.style.display = "none"} />
+                      : <span style={{ fontSize: 28, flexShrink: 0 }}>{p.image}</span>
+                    }
                     <div>
                       <div style={{ color: T.white, fontWeight: 600, fontSize: 14 }}>{p.name}</div>
                       <div style={{ color: "#666", fontSize: 12, marginTop: 2 }}>{p.badges?.join(" · ")}</div>
@@ -1318,7 +1391,9 @@ function AdminProducts() {
                 </td>
                 <td style={{ padding: "14px 16px", color: "#888", fontSize: 13 }}>{p.category}</td>
                 <td style={{ padding: "14px 16px", color: T.mapleLight, fontWeight: 700 }}>{formatCAD(p.price)}</td>
-                <td style={{ padding: "14px 16px" }}><span style={{ color: p.stock <= 8 ? "#E74C3C" : p.stock <= 15 ? "#F39C12" : "#27AE60", fontWeight: 700 }}>{p.stock}</span></td>
+                <td style={{ padding: "14px 16px" }}>
+                  <span style={{ color: p.stock <= 8 ? "#E74C3C" : p.stock <= 15 ? "#F39C12" : "#27AE60", fontWeight: 700 }}>{p.stock}</span>
+                </td>
                 <td style={{ padding: "14px 16px" }}><HeatLevel level={p.heat} /></td>
                 <td style={{ padding: "14px 16px" }}>
                   <button onClick={() => updateProduct(p.id, { active: !p.active })} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
