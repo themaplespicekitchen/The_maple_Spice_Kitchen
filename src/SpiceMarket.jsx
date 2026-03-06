@@ -131,48 +131,78 @@ function DataProvider({ children }) {
   const addProduct = async (p) => {
   const { error } = await supabase.from("products").insert({
     name: p.name,
-    description: p.description,
+    description: p.description || "",
     price: parseFloat(p.price) || 0,
     category: p.category,
     heat_level: parseInt(p.heat) || 3,
     stock: parseInt(p.stock) || 0,
-    image_emoji: p.image,
+    image_emoji: p.image || "🌶️",
     badges: Array.isArray(p.badges) ? p.badges : p.badges?.split(",").map(b => b.trim()).filter(Boolean) || [],
     active: p.active ?? true,
   });
 
-  if (error) console.error("Add product error:", error.message);
+  if (error) {
+    console.error("Add error:", error.message);
+    return;
+  }
   await fetchProducts();
 };
 
-  const updateProduct = async (id, updates) => {
-  // Map frontend field names to database column names
-  const dbUpdates = {};
-  
-  if (updates.name !== undefined) dbUpdates.name = updates.name;
-  if (updates.description !== undefined) dbUpdates.description = updates.description;
-  if (updates.price !== undefined) dbUpdates.price = updates.price;
-  if (updates.category !== undefined) dbUpdates.category = updates.category;
-  if (updates.stock !== undefined) dbUpdates.stock = updates.stock;
-  if (updates.active !== undefined) dbUpdates.active = updates.active;
-  if (updates.badges !== undefined) dbUpdates.badges = updates.badges;
-  if (updates.heat !== undefined) dbUpdates.heat_level = updates.heat;
-  if (updates.heat_level !== undefined) dbUpdates.heat_level = updates.heat_level;
-  if (updates.image !== undefined) dbUpdates.image_emoji = updates.image;
-  if (updates.image_emoji !== undefined) dbUpdates.image_emoji = updates.image_emoji;
+ const updateProduct = async (id, updates) => {
+  // Build clean DB payload — only valid columns
+  const payload = {};
+
+  if (updates.name !== undefined)        payload.name = updates.name;
+  if (updates.description !== undefined) payload.description = updates.description;
+  if (updates.price !== undefined)       payload.price = parseFloat(updates.price) || 0;
+  if (updates.category !== undefined)    payload.category = updates.category;
+  if (updates.stock !== undefined)       payload.stock = parseInt(updates.stock) || 0;
+  if (updates.active !== undefined)      payload.active = updates.active;
+  if (updates.badges !== undefined)      payload.badges = Array.isArray(updates.badges) ? updates.badges : updates.badges?.split(",").map(b => b.trim()).filter(Boolean) || [];
+  if (updates.heat !== undefined)        payload.heat_level = parseInt(updates.heat) || 3;
+  if (updates.heat_level !== undefined)  payload.heat_level = updates.heat_level;
+  // image field maps to image_emoji in DB — handles both URL and emoji
+  if (updates.image !== undefined)       payload.image_emoji = updates.image;
+  if (updates.image_emoji !== undefined) payload.image_emoji = updates.image_emoji;
 
   const { error } = await supabase
     .from("products")
-    .update(dbUpdates)
-    .eq("id", id);
+    .update(payload)
+    .eq("id", id)
+    .select();
 
-  if (error) console.error("Update product error:", error.message);
-  await fetchProducts();
+  if (error) {
+    console.error("Update error:", error.message, payload);
+    alert("Update failed: " + error.message);
+    return;
+  }
+
+  // Optimistically update local state immediately — no reload needed
+  setProducts(prev => prev.map(p => {
+    if (p.id !== id) return p;
+    return {
+      ...p,
+      ...payload,
+      // Keep frontend-friendly aliases in sync
+      heat: payload.heat_level !== undefined ? payload.heat_level : p.heat,
+      image: payload.image_emoji !== undefined ? payload.image_emoji : p.image,
+    };
+  }));
 };
 
   const deleteProduct = async (id) => {
-    await supabase.from("products").delete().eq("id", id);
-    await fetchProducts();
+    // Optimistically remove from UI immediately
+    setProducts(prev => prev.filter(p => p.id !== id));
+    const { error } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", id)
+      .select();
+    if (error) {
+      console.error("Delete error:", error.message);
+      // Rollback on failure
+      await fetchProducts();
+    }
   };
 
   const updateOrder = async (id, updates) => {
